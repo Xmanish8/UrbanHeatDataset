@@ -36,8 +36,8 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    return joblib.load('models/uhi_rf_model.pkl')
-
+    return joblib.load("models/uhi_xgboost_model.pkl")
+    
 df    = load_data()
 rf    = load_model()
 
