@@ -39,12 +39,20 @@ def load_model():
     return joblib.load("models/uhi_xgboost_model.pkl")
     
 df    = load_data()
-rf    = load_model()
+model = load_model()
 
-FEATURES = ['NDVI', 'NDBI', 'AirTemp',
-            'Elevation', 'Slope', 'PopDensity']
-
-df['LST_Predicted'] = rf.predict(df[FEATURES])
+FEATURES = [
+    'NDVI',
+    'NDBI',
+    'NDWI',
+    'Albedo',
+    'AirTemp',
+    'WindSpeed',
+    'Elevation',
+    'Slope',
+    'PopDensity'
+]
+df['LST_Predicted'] = model.predict(df[FEATURES])
 
 p20 = df['LST_Predicted'].quantile(0.20)
 p40 = df['LST_Predicted'].quantile(0.40)
@@ -261,7 +269,7 @@ elif page == "📊 Driver Analysis":
 
     st.markdown("---")
     st.subheader("Feature Importance (Random Forest)")
-    importances = rf.feature_importances_
+    importances = model.feature_importances_
     feat_df = pd.DataFrame({
         'Feature'    : FEATURES,
         'Importance' : importances
@@ -313,13 +321,13 @@ elif page == "🌿 Scenario Simulator":
         X_g = X_sim.copy()
         X_g.loc[mask, 'NDVI'] = (
             X_g.loc[mask, 'NDVI'] + ndvi_increase).clip(upper=0.9)
-        lst_g = rf.predict(X_g).mean()
+        lst_g = model.predict(X_g).mean()
 
         # Cool roofs
         X_r = X_sim.copy()
         X_r.loc[mask, 'NDBI'] = (
             X_r.loc[mask, 'NDBI'] - ndbi_decrease).clip(lower=-1.0)
-        lst_r = rf.predict(X_r).mean()
+        lst_r = model.predict(X_r).mean()
 
         # Combined
         X_c = X_sim.copy()
@@ -327,7 +335,7 @@ elif page == "🌿 Scenario Simulator":
             X_c.loc[mask, 'NDVI'] + ndvi_increase).clip(upper=0.9)
         X_c.loc[mask, 'NDBI'] = (
             X_c.loc[mask, 'NDBI'] - ndbi_decrease).clip(lower=-1.0)
-        lst_c = rf.predict(X_c).mean()
+        lst_c = model.predict(X_c).mean()
 
         st.markdown("---")
         st.subheader("Simulation Results")
