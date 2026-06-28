@@ -105,7 +105,7 @@ page = st.sidebar.radio(
 
 if page == "🏠 Overview":
     st.title("🌡️ Urban Heat Island Prediction System")
-    st.markdown("### Pune City Core | ISRO Hackathon 2025")
+    st.markdown("### Pune City Core | ISRO Hackathon 2026")
     st.markdown("---")
 
     col1, col2, col3, col4 = st.columns(4)
