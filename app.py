@@ -96,7 +96,33 @@ page = st.sidebar.radio(
      "🌿 Scenario Simulator",
      "🤖 AI Recommendations"]
 )
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 👨‍💻 Contributors")
 
+contributors = {
+    "Manish Marathe": "https://github.com/Xmanish8",
+    "Soham Sandbhor": "https://github.com/SohamFE23",
+    "Rajesh Sahu": "https://github.com/rajeshsahu777"
+}
+
+for name, url in contributors.items():
+    username = url.rstrip("/").split("/")[-1]
+    avatar = f"https://github.com/{username}.png"
+
+    st.sidebar.markdown(
+        f"""
+        <a href="{url}" target="_blank" style="text-decoration:none;">
+            <img src="{avatar}" width="40" style="border-radius:50%;vertical-align:middle;">
+            <span style="margin-left:10px;font-size:16px;font-weight:600;">
+                {name}
+            </span>
+        </a>
+        """,
+        unsafe_allow_html=True,
+    )
+st.sidebar.markdown("---")
+st.sidebar.caption("🚀 Developed for Bharatiya Antariksh Hackathon 2026")
+st.sidebar.caption("Team: Urban Heat AI")
 # ============================================================
 # PAGE 1 — OVERVIEW
 # ============================================================
