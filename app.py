@@ -261,50 +261,101 @@ elif page == "📊 Driver Analysis":
     st.title("📊 Driver Analysis — What Causes UHI?")
     st.markdown("---")
 
-    st.subheader("SHAP Feature Importance")
-    if os.path.exists('shap_importance.png'):
-        st.image('shap_importance.png', use_column_width=True)
-    else:
-        st.warning("Run SHAP analysis first to generate this plot.")
+    SHAP_DIR = "shape_outputs"
 
+    # ===============================
+    # SHAP Feature Importance
+    # ===============================
+    st.subheader("SHAP Feature Importance")
+
+    shap_importance = os.path.join(SHAP_DIR, "shap_importance.png")
+
+    if os.path.exists(shap_importance):
+        st.image(shap_importance, use_container_width=True)
+    else:
+        st.warning("SHAP importance image not found.")
+
+    # ===============================
+    # SHAP Summary
+    # ===============================
     st.subheader("SHAP Summary — Feature Impact")
-    if os.path.exists('shap_summary.png'):
-        st.image('shap_summary.png', use_column_width=True)
+
+    shap_summary = os.path.join(SHAP_DIR, "shap_summary.png")
+
+    if os.path.exists(shap_summary):
+        st.image(shap_summary, use_container_width=True)
 
     st.markdown("---")
+
+    # ===============================
+    # SHAP Ranking
+    # ===============================
     st.subheader("SHAP Driver Ranking")
-    if os.path.exists('shap_mean_importance.csv'):
-        shap_df = pd.read_csv('shap_mean_importance.csv',
-                              header=None,
-                              names=['Feature', 'SHAP Value'])
+
+    shap_csv = os.path.join(SHAP_DIR, "shap_mean_importance.csv")
+
+    if os.path.exists(shap_csv):
+        shap_df = pd.read_csv(
+            shap_csv,
+            header=None,
+            names=["Feature", "SHAP Value"]
+        )
+
         shap_df = shap_df.sort_values(
-            'SHAP Value', ascending=False)
+            "SHAP Value",
+            ascending=False
+        )
+
         st.dataframe(shap_df, use_container_width=True)
 
     st.markdown("---")
+
+    # ===============================
+    # SHAP Dependence Plots
+    # ===============================
     st.subheader("SHAP Dependence Plots")
+
     col1, col2 = st.columns(2)
-    for feat, col in zip(['NDVI', 'NDBI', 'AirTemp', 'Elevation'],
-                         [col1, col2, col1, col2]):
-        path = f'shap_dependence_{feat}.png'
-        if os.path.exists(path):
-            col.image(path, caption=f'SHAP — {feat}',
-                      use_column_width=True)
+
+    plots = [
+        ("NDVI", col1),
+        ("NDBI", col2),
+        ("AirTemp", col1),
+        ("Elevation", col2),
+    ]
+
+    for feature, col in plots:
+
+        img = os.path.join(
+            SHAP_DIR,
+            f"shap_dependence_{feature}.png"
+        )
+
+        if os.path.exists(img):
+            col.image(img, caption=feature, use_container_width=True)
 
     st.markdown("---")
-    st.subheader("Feature Importance (Random Forest)")
-    importances = model.feature_importances_
-    feat_df = pd.DataFrame({
-        'Feature'    : FEATURES,
-        'Importance' : importances
-    }).sort_values('Importance', ascending=True)
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.barh(feat_df['Feature'], feat_df['Importance'],
-            color='steelblue', edgecolor='white')
-    ax.set_xlabel('Importance')
-    ax.set_title('Random Forest Feature Importance')
-    plt.tight_layout()
+    st.subheader("Feature Importance (XGBoost)")
+
+    importances = model.feature_importances_
+
+    feat_df = pd.DataFrame({
+        "Feature": FEATURES,
+        "Importance": importances
+    }).sort_values("Importance")
+
+    fig, ax = plt.subplots(figsize=(8,4))
+
+    ax.barh(
+        feat_df["Feature"],
+        feat_df["Importance"],
+        color="steelblue"
+    )
+
+    ax.set_title("XGBoost Feature Importance")
+    ax.set_xlabel("Importance")
+
     st.pyplot(fig)
 
 # ============================================================
