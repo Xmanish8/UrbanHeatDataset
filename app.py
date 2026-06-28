@@ -81,8 +81,7 @@ zone_colors = {
 # ============================================================
 
 st.sidebar.image(
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/"
-    "b/bd/Indian_Space_Research_Organisation_Logo.svg/"
+    "https://en.wikipedia.org/wiki/File:Indian_Space_Research_Organisation_Logo.svg/"
     "200px-Indian_Space_Research_Organisation_Logo.svg.png",
     width=120
 )
