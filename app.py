@@ -81,8 +81,7 @@ zone_colors = {
 # ============================================================
 
 st.sidebar.image(
-    "https://en.wikipedia.org/wiki/File:Indian_Space_Research_Organisation_Logo.svg/"
-    "200px-Indian_Space_Research_Organisation_Logo.svg.png",
+    "https://upload.wikimedia.org/wikipedia/commons/b/bd/Indian_Space_Research_Organisation_Logo.svg",
     width=120
 )
 st.sidebar.title("🌡️ UHI Prediction")
