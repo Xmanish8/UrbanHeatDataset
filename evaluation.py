@@ -12,7 +12,7 @@ import joblib
 # 1. LOAD NEW CSV
 # ============================================================
 
-df = pd.read_csv('UrbanHeatDataset.csv')
+df = pd.read_csv('data/UrbanHeatDataset.csv')
 df.drop(columns=['.geo', 'system:index'], inplace=True, errors='ignore')
 df.dropna(inplace=True)
 
@@ -30,7 +30,7 @@ y = df[TARGET]
 
 rf = RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
 rf.fit(X, y)
-joblib.dump(rf, 'uhi_rf_model.pkl')
+joblib.dump(rf, 'models/uhi_rf_model.pkl')
 
 df['LST_Predicted'] = rf.predict(X)
 
@@ -77,9 +77,9 @@ plt.ylabel('Latitude')
 plt.title('Urban Heat Island Zones — Pune (2023)')
 plt.legend(loc='lower right', markerscale=5)
 plt.tight_layout()
-plt.savefig('uhi_zone_map.png', dpi=200, bbox_inches='tight')
+plt.savefig('outputs/uhi_zone_map.png', dpi=200, bbox_inches='tight')
 plt.show()
-print("Saved → uhi_zone_map.png")
+print("Saved → outputs/uhi_zone_map.png")
 
 # ============================================================
 # 5. HEATMAP (sampled — folium can't handle 42k points well)
@@ -100,8 +100,8 @@ heat_data = [[r['latitude'], r['longitude'], r['LST_Predicted']]
 HeatMap(heat_data, min_opacity=0.5,
         radius=15, blur=10).add_to(m1)
 
-m1.save('uhi_heatmap.html')
-print("Saved → uhi_heatmap.html")
+m1.save('maps/uhi_heatmap.html')
+print("Saved → maps/uhi_heatmap.html")
 
 # ============================================================
 # 6. INTERACTIVE ZONE MAP (sampled)
@@ -139,8 +139,8 @@ legend_html = """
 </div>
 """
 m2.get_root().html.add_child(folium.Element(legend_html))
-m2.save('uhi_zone_map.html')
-print("Saved → uhi_zone_map.html")
+m2.save('maps/uhi_zone_map.html')
+print("Saved → maps/uhi_zone_map.html")
 
 # ============================================================
 # 7. SATELLITE MAP
@@ -172,11 +172,11 @@ for _, row in df_sample.iterrows():
             max_width=150)
     ).add_to(m3)
 
-m3.save('uhi_satellite_map.html')
-print("Saved → uhi_satellite_map.html")
+m3.save('maps/uhi_satellite_map.html')
+print("Saved → maps/uhi_satellite_map.html")
 
 print("\n✅ All maps saved. Open in browser:")
-print("   → uhi_heatmap.html")
-print("   → uhi_zone_map.html")
-print("   → uhi_satellite_map.html")
-print("   → uhi_zone_map.png  (static)")
+print("   → maps/uhi_heatmap.html")
+print("   → maps/uhi_zone_map.html")
+print("   → maps/uhi_satellite_map.html")
+print("   → outputs/uhi_zone_map.png  (static)")

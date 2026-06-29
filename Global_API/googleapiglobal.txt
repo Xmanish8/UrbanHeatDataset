@@ -1,0 +1,339 @@
+// =============================================================
+// HEATSHIELD AI — INTERACTIVE PUNE UHI MAP
+// Click any point on Pune → see LST, NDVI, NDBI, analysis
+// =============================================================
+
+// ── ROI ──────────────────────────────────────────────────────
+var roi = ee.Geometry.Rectangle([73.70, 18.40, 74.00, 18.70]);
+Map.setCenter(73.856, 18.520, 13);
+
+var START_DATE = '2023-03-01';
+var END_DATE   = '2023-05-31';
+var TARGET_CRS   = 'EPSG:32643';
+var TARGET_SCALE = 30;
+
+// =============================================================
+// PART 1 — SENTINEL-2
+// =============================================================
+function maskS2Clouds(image) {
+  var qa = image.select('QA60');
+  var mask = qa.bitwiseAnd(1 << 10).eq(0)
+               .and(qa.bitwiseAnd(1 << 11).eq(0));
+  return image.updateMask(mask).divide(10000)
+              .copyProperties(image, ['system:time_start']);
+}
+
+var s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+    .filterBounds(roi).filterDate(START_DATE, END_DATE)
+    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 30))
+    .map(maskS2Clouds).median().clip(roi)
+    .reproject({ crs: TARGET_CRS, scale: TARGET_SCALE });
+
+var ndvi = s2.normalizedDifference(['B8','B4']).rename('NDVI');
+var ndbi = s2.normalizedDifference(['B11','B8']).rename('NDBI');
+var ndwi = s2.normalizedDifference(['B3','B8']).rename('NDWI');
+
+// =============================================================
+// PART 2 — LANDSAT 8 LST
+// =============================================================
+function maskL8(image) {
+  var qa = image.select('QA_PIXEL');
+  return image.updateMask(
+    qa.bitwiseAnd(1 << 3).eq(0).and(qa.bitwiseAnd(1 << 4).eq(0))
+  ).copyProperties(image, ['system:time_start']);
+}
+
+var landsat = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2')
+    .filterBounds(roi).filterDate(START_DATE, END_DATE)
+    .map(maskL8).median().clip(roi);
+
+var lst = landsat.select('ST_B10')
+    .multiply(0.00341802).add(149.0).subtract(273.15)
+    .rename('LST')
+    .reproject({ crs: TARGET_CRS, scale: TARGET_SCALE });
+
+// =============================================================
+// PART 3 — ERA5 + TERRAIN + POP
+// =============================================================
+var era5 = ee.ImageCollection('ECMWF/ERA5_LAND/HOURLY')
+    .filterBounds(roi).filterDate(START_DATE, END_DATE)
+    .select(['temperature_2m','dewpoint_temperature_2m',
+             'u_component_of_wind_10m','v_component_of_wind_10m',
+             'surface_solar_radiation_downwards']);
+
+var airTemp = era5.select('temperature_2m').mean()
+    .subtract(273.15).rename('AirTemp').clip(roi);
+
+var meanT  = era5.select('temperature_2m').mean().subtract(273.15);
+var meanTd = era5.select('dewpoint_temperature_2m').mean().subtract(273.15);
+var rh = ee.Image(100).multiply(
+    meanTd.multiply(17.625).divide(meanTd.add(243.04)).exp()
+).divide(
+    meanT.multiply(17.625).divide(meanT.add(243.04)).exp()
+).rename('RelHumidity').clip(roi);
+
+var u = era5.select('u_component_of_wind_10m').mean();
+var v = era5.select('v_component_of_wind_10m').mean();
+var windSpeed = u.pow(2).add(v.pow(2)).sqrt().rename('WindSpeed').clip(roi);
+var solarRad  = era5.select('surface_solar_radiation_downwards')
+    .mean().divide(3600).rename('SolarRadiation').clip(roi);
+
+var srtm      = ee.Image('USGS/SRTMGL1_003').clip(roi);
+var elevation = srtm.select('elevation').rename('Elevation');
+var slope     = ee.Terrain.slope(srtm).rename('Slope');
+
+var worldPop = ee.ImageCollection('WorldPop/GP/100m/pop')
+    .filter(ee.Filter.eq('country','IND'))
+    .filter(ee.Filter.eq('year', 2020))
+    .mosaic().select('population').rename('PopDensity').clip(roi);
+
+// =============================================================
+// PART 4 — FEATURE STACK (all bands in one image)
+// =============================================================
+var stack = ee.Image.cat([
+    lst, ndvi, ndbi, ndwi,
+    airTemp, rh, windSpeed, solarRad,
+    elevation, slope, worldPop
+]).reproject({ crs: TARGET_CRS, scale: TARGET_SCALE });
+
+// =============================================================
+// PART 5 — HOTSPOT LAYER
+// =============================================================
+var lstStats = lst.reduceRegion({
+  reducer: ee.Reducer.mean().combine(ee.Reducer.stdDev(),'',true),
+  geometry: roi, scale: 1000, maxPixels: 1e9
+});
+var lstMean = ee.Number(lstStats.get('LST_mean'));
+var lstStd  = ee.Number(lstStats.get('LST_stdDev'));
+
+// Three severity tiers
+var mild     = lst.gt(lstMean.add(lstStd.multiply(0.5)))
+                  .and(lst.lte(lstMean.add(lstStd)));
+var moderate = lst.gt(lstMean.add(lstStd))
+                  .and(lst.lte(lstMean.add(lstStd.multiply(2))));
+var severe   = lst.gt(lstMean.add(lstStd.multiply(2)));
+
+// =============================================================
+// PART 6 — ADD ALL LAYERS TO MAP
+// =============================================================
+
+// Base: True colour Sentinel
+Map.addLayer(s2,
+    { bands:['B4','B3','B2'], min:0.02, max:0.25, gamma:1.4 },
+    '🛰️ Sentinel-2 True Colour', true);
+
+// LST heatmap
+Map.addLayer(lst,
+    { min:25, max:50,
+      palette:['#040274','#2e86de','#00a65a',
+               '#ffff00','#ff8c00','#ff0000'] },
+    '🌡️ LST — Land Surface Temp', true);
+
+// NDVI
+Map.addLayer(ndvi,
+    { min:-0.1, max:0.7,
+      palette:['#d73027','#f46d43','#fee08b',
+               '#d9ef8b','#66bd63','#1a9850'] },
+    '🌿 NDVI — Vegetation', false);
+
+// NDBI
+Map.addLayer(ndbi,
+    { min:-0.5, max:0.5,
+      palette:['#313695','#74add1','#fee090',
+               '#f46d43','#a50026'] },
+    '🏙️ NDBI — Built-up', false);
+
+// NDWI
+Map.addLayer(ndwi,
+    { min:-0.5, max:0.3,
+      palette:['#8c510a','#f6e8c3','#c7eae5','#35978f','#003c30'] },
+    '💧 NDWI — Water Bodies', false);
+
+// Hotspot tiers
+Map.addLayer(mild.updateMask(mild),
+    { palette:['#ffff00'] }, '🟡 Mild Hotspots', true);
+Map.addLayer(moderate.updateMask(moderate),
+    { palette:['#ff8c00'] }, '🟠 Moderate Hotspots', true);
+Map.addLayer(severe.updateMask(severe),
+    { palette:['#ff0000'] }, '🔴 Severe Hotspots', true);
+
+// =============================================================
+// PART 7 — INTERACTIVE CLICK INSPECTOR
+// Click anywhere on Pune → panel shows full analysis
+// =============================================================
+
+// Panel setup
+var panel = ui.Panel({
+  style: {
+    position: 'bottom-left',
+    padding: '12px',
+    width: '320px',
+    backgroundColor: '#1a1a2e',
+    border: '2px solid #e94560'
+  }
+});
+
+var title = ui.Label('🌡️ HeatShield AI — Click map to inspect', {
+  fontWeight: 'bold', fontSize: '14px',
+  color: '#e94560', backgroundColor: '#1a1a2e', margin: '0 0 8px 0'
+});
+
+var subtitle = ui.Label('👆 Click any location on Pune', {
+  fontSize: '12px', color: '#a8b2d8',
+  backgroundColor: '#1a1a2e', margin: '0 0 6px 0'
+});
+
+panel.add(title);
+panel.add(subtitle);
+Map.add(panel);
+
+// ── Click handler ─────────────────────────────────────────────
+Map.onClick(function(coords) {
+  panel.clear();
+  panel.add(ui.Label('🌡️ HeatShield AI', {
+    fontWeight:'bold', fontSize:'14px',
+    color:'#e94560', backgroundColor:'#1a1a2e', margin:'0 0 6px 0'
+  }));
+  panel.add(ui.Label('⏳ Analysing point...', {
+    fontSize:'12px', color:'#a8b2d8', backgroundColor:'#1a1a2e'
+  }));
+
+  var point = ee.Geometry.Point([coords.lon, coords.lat]);
+
+  // Sample all bands at click point
+  var sample = stack.sample({
+    region: point,
+    scale: 30,
+    geometries: false
+  }).first();
+
+  // ── LST ──
+  sample.evaluate(function(result) {
+    panel.clear();
+
+    if (!result || !result.properties) {
+      panel.add(ui.Label('⚠️ No data at this point. Try another location.', {
+        color:'#ff8c00', backgroundColor:'#1a1a2e', fontSize:'12px'
+      }));
+      return;
+    }
+
+    var p = result.properties;
+    var lstVal  = p.LST   ? p.LST.toFixed(1)   : 'N/A';
+    var ndviVal = p.NDVI  ? p.NDVI.toFixed(3)  : 'N/A';
+    var ndbiVal = p.NDBI  ? p.NDBI.toFixed(3)  : 'N/A';
+    var ndwi    = p.NDWI  ? p.NDWI.toFixed(3)  : 'N/A';
+    var at      = p.AirTemp    ? p.AirTemp.toFixed(1)    : 'N/A';
+    var rhVal   = p.RelHumidity? p.RelHumidity.toFixed(1): 'N/A';
+    var ws      = p.WindSpeed  ? p.WindSpeed.toFixed(2)  : 'N/A';
+    var elev    = p.Elevation  ? Math.round(p.Elevation) : 'N/A';
+    var pop     = p.PopDensity ? Math.round(p.PopDensity): 'N/A';
+
+    // Heat severity
+    var lstNum = parseFloat(lstVal);
+    var severity, sevColor, intervention, cooling;
+    if (lstNum >= 45) {
+      severity = '🔴 SEVERE HOTSPOT';  sevColor = '#ff0000';
+      intervention = '🌳 Plant 500+ trees + Cool roofs immediately';
+      cooling = '↓ 6–8°C possible';
+    } else if (lstNum >= 40) {
+      severity = '🟠 MODERATE HOTSPOT'; sevColor = '#ff8c00';
+      intervention = '🌿 Add green corridors + reflective pavements';
+      cooling = '↓ 3–5°C possible';
+    } else if (lstNum >= 35) {
+      severity = '🟡 MILD HEAT ZONE';  sevColor = '#ffff00';
+      intervention = '🌱 Urban greening + water features';
+      cooling = '↓ 1–3°C possible';
+    } else {
+      severity = '🟢 COOL ZONE';       sevColor = '#00ff00';
+      intervention = '✅ Maintain current vegetation cover';
+      cooling = 'Within safe range';
+    }
+
+    // Why is it hot — driver analysis
+    var ndviNum = parseFloat(ndviVal);
+    var ndbiNum = parseFloat(ndbiVal);
+    var vegLoss  = ndviNum < 0.2 ? '⚠️ Low vegetation (NDVI < 0.2)' : '✅ Adequate vegetation';
+    var builtUp  = ndbiNum > 0.1 ? '⚠️ High built-up density'       : '✅ Low built-up';
+
+    // ── Render panel ──
+    var styleH = {fontWeight:'bold', fontSize:'13px',
+                  color:'#ffffff', backgroundColor:'#1a1a2e', margin:'8px 0 4px 0'};
+    var styleV = {fontSize:'12px', color:'#a8b2d8',
+                  backgroundColor:'#1a1a2e', margin:'2px 0'};
+    var styleSev = {fontWeight:'bold', fontSize:'13px',
+                    color: sevColor, backgroundColor:'#1a1a2e', margin:'4px 0'};
+
+    panel.add(ui.Label('🌡️ HeatShield AI — Point Analysis', {
+      fontWeight:'bold', fontSize:'14px',
+      color:'#e94560', backgroundColor:'#1a1a2e', margin:'0 0 6px 0'
+    }));
+
+    panel.add(ui.Label('📍 Location', styleH));
+    panel.add(ui.Label('Lat: ' + coords.lat.toFixed(4) +
+                       '  Lon: ' + coords.lon.toFixed(4), styleV));
+    panel.add(ui.Label('Elevation: ' + elev + ' m', styleV));
+
+    panel.add(ui.Label('──────────────────────', {color:'#333', backgroundColor:'#1a1a2e'}));
+    panel.add(ui.Label('🌡️ Thermal', styleH));
+    panel.add(ui.Label('Land Surface Temp : ' + lstVal + ' °C', styleV));
+    panel.add(ui.Label('Air Temperature   : ' + at    + ' °C', styleV));
+    panel.add(ui.Label('Relative Humidity : ' + rhVal + ' %',  styleV));
+    panel.add(ui.Label('Wind Speed        : ' + ws    + ' m/s',styleV));
+
+    panel.add(ui.Label('──────────────────────', {color:'#333', backgroundColor:'#1a1a2e'}));
+    panel.add(ui.Label('🌿 Land Cover', styleH));
+    panel.add(ui.Label('NDVI (vegetation) : ' + ndviVal, styleV));
+    panel.add(ui.Label('NDBI (built-up)   : ' + ndbiVal, styleV));
+    panel.add(ui.Label('NDWI (water)      : ' + ndwi,    styleV));
+    panel.add(ui.Label('Population density: ' + pop,     styleV));
+
+    panel.add(ui.Label('──────────────────────', {color:'#333', backgroundColor:'#1a1a2e'}));
+    panel.add(ui.Label('🔥 Heat Severity', styleH));
+    panel.add(ui.Label(severity, styleSev));
+
+    panel.add(ui.Label('──────────────────────', {color:'#333', backgroundColor:'#1a1a2e'}));
+    panel.add(ui.Label('🔍 Why Is It Hot?', styleH));
+    panel.add(ui.Label(vegLoss, styleV));
+    panel.add(ui.Label(builtUp, styleV));
+
+    panel.add(ui.Label('──────────────────────', {color:'#333', backgroundColor:'#1a1a2e'}));
+    panel.add(ui.Label('💡 Recommended Action', styleH));
+    panel.add(ui.Label(intervention, {
+      fontSize:'12px', color:'#00d4aa', backgroundColor:'#1a1a2e', margin:'2px 0'
+    }));
+    panel.add(ui.Label(cooling, {
+      fontWeight:'bold', fontSize:'13px',
+      color:'#00d4aa', backgroundColor:'#1a1a2e', margin:'4px 0 0 0'
+    }));
+  });
+});
+
+// =============================================================
+// PART 8 — EXPORT CSV
+// =============================================================
+var samples = stack
+    .addBands(ee.Image.pixelLonLat())
+    .sample({
+        region: roi, scale: 500,
+        projection: TARGET_CRS,
+        geometries: true, tileScale: 8
+    });
+
+var withCoords = samples.map(function(f) {
+    var coords = f.geometry().coordinates();
+    return f.set('longitude', coords.get(0))
+            .set('latitude',  coords.get(1))
+            .set('grid_id',   f.id());
+});
+
+Export.table.toDrive({
+    collection    : withCoords,
+    description   : 'Pune_UHI_May2023',
+    folder        : 'GEE_Exports',
+    fileNamePrefix: 'UrbanHeatMap',
+    fileFormat    : 'CSV'
+});
+
+print('✅ Script loaded. Click map to inspect any Pune location.');
+print('✅ Tasks tab → RUN to export CSV for ML model.');
