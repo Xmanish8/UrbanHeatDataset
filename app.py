@@ -123,6 +123,7 @@ for name, url in contributors.items():
 st.sidebar.markdown("---")
 st.sidebar.caption("🚀 Developed for Bharatiya Antariksh Hackathon 2026")
 st.sidebar.caption("Team: Urban Heat AI")
+
 # ============================================================
 # PAGE 1 — OVERVIEW
 # ============================================================
