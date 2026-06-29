@@ -21,7 +21,7 @@ warnings.filterwarnings('ignore')
 # 1. LOAD DATA
 # ============================================================
 
-df = pd.read_csv('UrbanHeatDataset.csv')
+df = pd.read_csv('data/UrbanHeatDataset.csv')
 print(f"Shape: {df.shape}")
 print(df.head())
 print(df.describe())
@@ -52,7 +52,7 @@ sns.heatmap(df[FEATURES + [TARGET]].corr(),
             annot=True, fmt='.2f', cmap='coolwarm')
 plt.title('Feature Correlation Matrix')
 plt.tight_layout()
-plt.savefig('correlation_matrix.png', dpi=150)
+plt.savefig('outputs/correlation_matrix.png', dpi=150)
 plt.show()
 
 # LST distribution
@@ -60,7 +60,7 @@ plt.figure(figsize=(8, 4))
 sns.histplot(y, bins=50, kde=True, color='tomato')
 plt.title('LST Distribution (°C)')
 plt.xlabel('LST (°C)')
-plt.savefig('lst_distribution.png', dpi=150)
+plt.savefig('outputs/lst_distribution.png', dpi=150)
 plt.show()
 
 # ============================================================
@@ -146,7 +146,7 @@ plt.figure(figsize=(8, 5))
 sns.barplot(data=feat_df, x='Importance', y='Feature', palette='viridis')
 plt.title('XGBoost Feature Importance — UHI Prediction')
 plt.tight_layout()
-plt.savefig('feature_importance.png', dpi=150)
+plt.savefig('outputs/feature_importance.png', dpi=150)
 plt.show()
 
 print("\nFeature Importance Ranking:")
@@ -166,7 +166,7 @@ plt.xlabel('Actual LST (°C)')
 plt.ylabel('Predicted LST (°C)')
 plt.title('XGBoost — Predicted vs Actual LST')
 plt.tight_layout()
-plt.savefig('predicted_vs_actual.png', dpi=150)
+plt.savefig('outputs/predicted_vs_actual.png', dpi=150)
 plt.show()
 
 # ============================================================
@@ -175,10 +175,10 @@ plt.show()
 
 import joblib
 
-joblib.dump(best_model, 'uhi_xgboost_model.pkl')
-joblib.dump(scaler,     'uhi_scaler.pkl')
-print("\nModel saved → uhi_xgboost_model.pkl")
-print("Scaler saved → uhi_scaler.pkl")
+joblib.dump(best_model, 'models/uhi_xgboost_model.pkl')
+joblib.dump(scaler,     'models/uhi_scaler.pkl')
+print("\nModel saved → models/uhi_xgboost_model.pkl")
+print("Scaler saved → models/uhi_scaler.pkl")
 
 # ============================================================
 # 10. RESULTS SUMMARY TABLE
