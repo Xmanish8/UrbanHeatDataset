@@ -499,7 +499,7 @@ def recommend_intervention(row):
 # PAGE 5 — AI RECOMMENDATIONS
 # ============================================================
 
-elif page == "🤖 AI Recommendations":
+    elif page == "🤖 AI Recommendations":
     st.title("🤖 AI-Based Intervention Recommendations")
     st.markdown("---")
 
