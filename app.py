@@ -77,6 +77,56 @@ zone_colors = {
 }
 
 # ============================================================
+# AI DECISION ENGINE
+# ============================================================
+
+def recommend_intervention(row):
+
+    recommendations = []
+
+    # Tree Plantation
+    if row["NDVI"] < 0.30:
+        recommendations.append(
+            "🌳 Tree Plantation (Very low vegetation detected)"
+        )
+
+    # Cool Roofs
+    if row["NDBI"] > 0.20:
+        recommendations.append(
+            "🏠 Cool Roofs (High built-up area)"
+        )
+
+    # Increase Surface Albedo
+    if row["Albedo"] < 0.18:
+        recommendations.append(
+            "☀️ High-Albedo Materials (Dark surfaces absorbing heat)"
+        )
+
+    # Water Bodies
+    if row["NDWI"] < 0.05:
+        recommendations.append(
+            "💧 Water Bodies / Water Features (Low water availability)"
+        )
+
+    # Urban Ventilation
+    if row["WindSpeed"] < 2:
+        recommendations.append(
+            "🌬 Improve Air Ventilation"
+        )
+
+    # Priority based on population
+    if row["PopDensity"] > 1000:
+        recommendations.append(
+            "👥 High Population Priority"
+        )
+
+    if len(recommendations) == 0:
+        return "✅ No immediate intervention required."
+
+    return " | ".join(recommendations)
+
+
+# ============================================================
 # SIDEBAR
 # ============================================================
 
@@ -447,59 +497,9 @@ elif page == "🌿 Scenario Simulator":
         st.pyplot(fig)
 
 # ============================================================
-# AI DECISION ENGINE
-# ============================================================
-
-def recommend_intervention(row):
-
-    recommendations = []
-
-    # Tree Plantation
-    if row["NDVI"] < 0.30:
-        recommendations.append(
-            "🌳 Tree Plantation (Very low vegetation detected)"
-        )
-
-    # Cool Roofs
-    if row["NDBI"] > 0.20:
-        recommendations.append(
-            "🏠 Cool Roofs (High built-up area)"
-        )
-
-    # Increase Surface Albedo
-    if row["Albedo"] < 0.18:
-        recommendations.append(
-            "☀️ High-Albedo Materials (Dark surfaces absorbing heat)"
-        )
-
-    # Water Bodies
-    if row["NDWI"] < 0.05:
-        recommendations.append(
-            "💧 Water Bodies / Water Features (Low water availability)"
-        )
-
-    # Urban Ventilation
-    if row["WindSpeed"] < 2:
-        recommendations.append(
-            "🌬 Improve Air Ventilation"
-        )
-
-    # Priority based on population
-    if row["PopDensity"] > 1000:
-        recommendations.append(
-            "👥 High Population Priority"
-        )
-
-    if len(recommendations) == 0:
-        return "✅ No immediate intervention required."
-
-    return " | ".join(recommendations)
-
-# ============================================================
 # PAGE 5 — AI RECOMMENDATIONS
 # ============================================================
-
-    elif page == "🤖 AI Recommendations":
+elif page == "🤖 AI Recommendations":
     st.title("🤖 AI-Based Intervention Recommendations")
     st.markdown("---")
 
