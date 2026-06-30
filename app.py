@@ -447,6 +447,55 @@ elif page == "🌿 Scenario Simulator":
         st.pyplot(fig)
 
 # ============================================================
+# AI DECISION ENGINE
+# ============================================================
+
+def recommend_intervention(row):
+
+    recommendations = []
+
+    # Tree Plantation
+    if row["NDVI"] < 0.30:
+        recommendations.append(
+            "🌳 Tree Plantation (Very low vegetation detected)"
+        )
+
+    # Cool Roofs
+    if row["NDBI"] > 0.20:
+        recommendations.append(
+            "🏠 Cool Roofs (High built-up area)"
+        )
+
+    # Increase Surface Albedo
+    if row["Albedo"] < 0.18:
+        recommendations.append(
+            "☀️ High-Albedo Materials (Dark surfaces absorbing heat)"
+        )
+
+    # Water Bodies
+    if row["NDWI"] < 0.05:
+        recommendations.append(
+            "💧 Water Bodies / Water Features (Low water availability)"
+        )
+
+    # Urban Ventilation
+    if row["WindSpeed"] < 2:
+        recommendations.append(
+            "🌬 Improve Air Ventilation"
+        )
+
+    # Priority based on population
+    if row["PopDensity"] > 1000:
+        recommendations.append(
+            "👥 High Population Priority"
+        )
+
+    if len(recommendations) == 0:
+        return "✅ No immediate intervention required."
+
+    return " | ".join(recommendations)
+
+# ============================================================
 # PAGE 5 — AI RECOMMENDATIONS
 # ============================================================
 
@@ -454,22 +503,68 @@ elif page == "🤖 AI Recommendations":
     st.title("🤖 AI-Based Intervention Recommendations")
     st.markdown("---")
 
+    df["Recommendation"] = df.apply(
+        recommend_intervention,
+        axis=1
+    )
+
     hotspots = df[df['UHI_Zone'] == 'Hot Zone (UHI)']
     st.metric("Total Hotspot Cells", f"{len(hotspots):,}")
-    st.metric("Hotspot Area (approx)",
-              f"{len(hotspots) * 0.01:.1f} km²")
+    st.metric("Hotspot Area (approx)", f"{len(hotspots) * 0.01:.1f} km²")
 
     st.markdown("---")
     st.subheader("Top 10 Hottest Locations")
-    top10 = df.nlargest(10, 'LST_Predicted')[
-        ['latitude', 'longitude', 'LST_Predicted',
-         'NDVI', 'NDBI', 'UHI_Zone']
+
+    top10 = df.nlargest(10, "LST_Predicted")[
+        [
+            "latitude",
+            "longitude",
+            "LST_Predicted",
+            "NDVI",
+            "NDBI",
+            "UHI_Zone",
+            "Recommendation"
+        ]
     ].reset_index(drop=True)
+
     top10.index += 1
     st.dataframe(top10, use_container_width=True)
 
     st.markdown("---")
+    st.subheader("🧠 AI Best Recommendation for Hottest Locations")
+
+    top_hotspots = df.nlargest(10, "LST_Predicted")[
+        [
+            "latitude",
+            "longitude",
+            "LST_Predicted",
+            "Recommendation"
+        ]
+    ]
+
+    st.dataframe(top_hotspots, use_container_width=True)
+
+    st.markdown("---")
+    st.subheader("🔍 Explain AI Recommendation")
+
+    idx = st.selectbox(
+        "Select Hotspot",
+        df.nlargest(50, "LST_Predicted").index
+    )
+
+    row = df.loc[idx]
+
+    st.metric(
+        "Predicted LST",
+        f"{row['LST_Predicted']:.2f} °C"
+    )
+
+    st.write("### AI Recommendation")
+    st.success(row["Recommendation"])
+
+    st.markdown("---")
     st.subheader("Recommended Interventions")
+
     st.markdown("""
 | Intervention | Target Zone | Expected Reduction | Priority |
 |---|---|---|---|
@@ -481,12 +576,18 @@ elif page == "🤖 AI Recommendations":
 
     st.markdown("---")
     st.subheader("Intervention Priority Map")
-    if os.path.exists('outputs/intervention_priority_map.png'):
-        st.image('outputs/intervention_priority_map.png',
-                 use_column_width=True)
+
+    if os.path.exists("outputs/intervention_priority_map.png"):
+        st.image(
+            "outputs/intervention_priority_map.png",
+            use_container_width=True
+        )
 
     st.markdown("---")
     st.subheader("Before vs After Intervention")
-    if os.path.exists('outputs/intervention_map.png'):
-        st.image('outputs/intervention_map.png',
-                 use_column_width=True)
+
+    if os.path.exists("outputs/intervention_map.png"):
+        st.image(
+            "outputs/intervention_map.png",
+            use_container_width=True
+        )
