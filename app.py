@@ -214,11 +214,38 @@ if page == "🏠 Overview":
     with col3:
         st.info("🌿 **Simulate Cooling**\n\nTest intervention strategies.")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Grid Cells", f"{len(df):,}", "100m × 100m")
-    col2.metric("Mean LST", f"{df['LST_Predicted'].mean():.1f} °C")
-    col3.metric("Max LST", f"{df['LST_Predicted'].max():.1f} °C")
-    col4.metric("Model R²", "0.94")
+    with col1:
+        st.metric(
+            "🛰 Grid Cells",
+            f"{len(df):,}",
+            "100 m × 100 m"
+        )
 
+    with col2:
+        st.metric(
+            "🌡 Average LST",
+            f"{df['LST_Predicted'].mean():.1f} °C"
+        )
+
+    with col3:
+        st.metric(
+            "🔥 Maximum LST",
+            f"{df['LST_Predicted'].max():.1f} °C"
+        )
+
+    with col4:
+        st.metric(
+            "🤖 AI Accuracy",
+            "94%"
+        )
+    st.markdown("---")
+
+    st.subheader("🚀 Why Urban Heat AI?")
+    st.markdown(
+        "Urban Heat AI is an Explainable AI-powered decision support system "
+        "that helps governments and urban planners detect, understand, and "
+        "mitigate Urban Heat Islands using satellite imagery and machine learning."
+    )
     st.markdown("---")
     col1, col2 = st.columns(2)
 
