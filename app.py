@@ -28,6 +28,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 @st.cache_data
 def load_data():
+    locations = pd.read_csv("data/pune_locations.csv")
     df = pd.read_csv('data/UrbanHeatDataset.csv')
     df.drop(columns=['.geo', 'system:index'],
             inplace=True, errors='ignore')
