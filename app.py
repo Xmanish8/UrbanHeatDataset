@@ -239,6 +239,12 @@ if page == "🏠 Overview":
 
 elif page == "🗺️ Heat Map":
     st.title("🗺️ Urban Heat Map — Pune")
+    st.subheader("📍 Search Location")
+
+    selected_location = st.selectbox(
+        "Select a Location",
+        locations["location_name"]
+    )
     st.markdown("---")
 
     map_type = st.radio(
