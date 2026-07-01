@@ -268,6 +268,24 @@ elif page == "🗺️ Heat Map":
     )
 
     nearest = df.loc[df["distance"].idxmin()]
+    st.subheader("📊 Selected Location Information")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "🌡 Predicted LST",
+        f"{nearest['LST_Predicted']:.2f} °C"
+    )
+
+    col2.metric(
+        "🌿 NDVI",
+       f"{nearest['NDVI']:.2f}"
+    )
+
+    col3.metric(
+        "🏙 NDBI",
+        f"{nearest['NDBI']:.2f}"
+    )
     st.markdown("---")
 
     map_type = st.radio(
