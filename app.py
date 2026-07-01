@@ -190,8 +190,18 @@ st.sidebar.caption("Team: Urban Heat AI")
 # ============================================================
 
 if page == "🏠 Overview":
-    st.title("🌡️ Urban Heat Island Prediction System")
-    st.markdown("### Pune City Core | ISRO Hackathon 2026")
+    st.title("🌍 Urban Heat AI")
+
+    st.markdown(
+    """
+    # **Explain. Predict. Mitigate.**
+
+    ### AI-powered Decision Support System for Urban Heat Island Mitigation
+
+    Using Satellite Imagery • Explainable AI • Machine Learning • Scenario Simulation
+    """
+    )
+
     st.markdown("---")
 
     col1, col2, col3, col4 = st.columns(4)
