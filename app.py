@@ -203,7 +203,16 @@ if page == "🏠 Overview":
     )
 
     st.markdown("---")
+    col1,col2,col3 = st.columns(3)
 
+    with col1:
+        st.info("🔥 **Explore Heat**\n\nView urban heat hotspots across Pune.")
+
+    with col2:
+        st.info("📊 **Understand Drivers**\n\nDiscover why each hotspot exists.")
+
+    with col3:
+        st.info("🌿 **Simulate Cooling**\n\nTest intervention strategies.")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Grid Cells", f"{len(df):,}", "100m × 100m")
     col2.metric("Mean LST", f"{df['LST_Predicted'].mean():.1f} °C")
