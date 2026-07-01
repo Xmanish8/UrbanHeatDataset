@@ -28,18 +28,28 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 @st.cache_data
 def load_data():
-    locations = pd.read_csv("data/pune_locations.csv")
-    df = pd.read_csv('data/UrbanHeatDataset.csv')
+    df = pd.read_csv("data/UrbanHeatDataset.csv")
+
     df.drop(columns=['.geo', 'system:index'],
             inplace=True, errors='ignore')
+
     df.dropna(inplace=True)
+
     return df
+
+
+@st.cache_data
+def load_locations():
+    return pd.read_csv("data/pune_locations.csv")
+
 
 @st.cache_resource
 def load_model():
     return joblib.load("models/uhi_xgboost_model.pkl")
-    
-df    = load_data()
+
+
+df = load_data()
+locations = load_locations()
 model = load_model()
 
 FEATURES = [
