@@ -275,6 +275,13 @@ elif page == "🗺️ Heat Map":
     if map_type == "Heatmap":
         m = folium.Map(location=center,
                        zoom_start=12, tiles='CartoDB positron')
+        folium.Marker(
+            location=[lat, lon],
+            popup=selected_location,
+            tooltip=selected_location,
+            icon=folium.Icon(color="red", icon="info-sign")
+        ).add_to(m)
+        
         heat_data = [[r['latitude'], r['longitude'],
                       r['LST_Predicted']]
                      for _, r in df_sample.iterrows()]
