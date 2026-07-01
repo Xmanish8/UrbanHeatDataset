@@ -270,7 +270,7 @@ elif page == "🗺️ Heat Map":
     )
 
     df_sample = df.sample(n=3000, random_state=42)
-    center    = [df['latitude'].mean(), df['longitude'].mean()]
+    center = [lat, lon]
 
     if map_type == "Heatmap":
         m = folium.Map(location=center,
