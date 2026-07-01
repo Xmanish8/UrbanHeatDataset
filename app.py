@@ -255,6 +255,12 @@ elif page == "🗺️ Heat Map":
         "Select a Location",
         locations["location_name"]
     )
+    selected = locations[
+        locations["location_name"] == selected_location
+    ].iloc[0]
+
+    lat = selected["latitude"]
+    lon = selected["longitude"]
     st.markdown("---")
 
     map_type = st.radio(
