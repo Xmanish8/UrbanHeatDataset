@@ -261,6 +261,13 @@ elif page == "🗺️ Heat Map":
 
     lat = selected["latitude"]
     lon = selected["longitude"]
+    # Find nearest grid cell
+    df["distance"] = (
+        (df["latitude"] - lat) ** 2 +
+        (df["longitude"] - lon) ** 2
+    )
+
+    nearest = df.loc[df["distance"].idxmin()]
     st.markdown("---")
 
     map_type = st.radio(
